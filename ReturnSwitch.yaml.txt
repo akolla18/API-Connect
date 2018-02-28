@@ -1,0 +1,82 @@
+swagger: '2.0'
+info:
+  x-ibm-name: returnswitch
+  title: ReturnSwitch
+  version: 1.0.0
+schemes:
+  - https
+host: $(catalog.host)
+basePath: /returnswitch
+consumes:
+  - application/xml
+  - application/json
+produces:
+  - application/xml
+  - application/json
+securityDefinitions:
+  clientIdHeader:
+    type: apiKey
+    in: header
+    name: X-IBM-Client-Id
+security:
+  - clientIdHeader: []
+x-ibm-configuration:
+  testable: true
+  enforced: true
+  cors:
+    enabled: true
+  assembly:
+    execute:
+      - gatewayscript:
+          title: gatewayscript
+          version: 1.0.0
+          source: |-
+            //var it = '{"good":"yes"}';
+            var it = "yes";
+            apim.setvariable('RESTResponse', it);
+      - switch:
+          title: switch
+          case:
+            - condition: '$(RESTResponse) == "yes";'
+              execute:
+                - gatewayscript:
+                    title: gatewayscript
+                    version: 1.0.0
+                    source: |-
+                      var it = '{"switch":"' + apim.getvariable('RESTResponse') + '"}';
+                      apim.setvariable('message.headers.Content-type', "application/json");
+                      apim.setvariable('message.body', it);
+            - otherwise:
+                - gatewayscript:
+                    title: gatewayscript
+                    version: 1.0.0
+                    source: |-
+                      var it = '{"otherwise":"' + apim.getvariable('RESTResponse') + '"}';
+                      apim.setvariable('message.body', it);
+                      }
+          version: 1.0.0
+    catch:
+      - default:
+          - gatewayscript:
+              title: gatewayscript
+              version: 1.0.0
+              source: "var apim = require('local://isp/policy/apim.custom.js');\r\nvar errors = require('local://isp/policy/apim.exception.js');\r\nvar err = errors.Errors.RuntimeError;\r\nvar httpCode=500;\r\nvar httpReasonPhrase='Internal Error';\r\nvar errorMessage='The service is not currently available';\r\nvar ignoreCatch='true';\r\napim.error(err, httpCode, httpReasonPhrase, errorMessage, ignoreCatch);"
+  phase: realized
+paths:
+  /path:
+    get:
+      responses:
+        '200':
+          description: 200 OK
+    parameters:
+      - name: body
+        required: false
+        in: body
+        schema:
+          type: object
+    post:
+      responses:
+        '200':
+          description: 200 OK
+definitions: {}
+tags: []
